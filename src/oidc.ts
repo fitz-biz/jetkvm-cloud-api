@@ -9,11 +9,12 @@ const API_HOSTNAME = process.env.API_HOSTNAME;
 const APP_HOSTNAME = process.env.APP_HOSTNAME;
 const REDIRECT_URI = `${API_HOSTNAME}/oidc/callback`;
 
-const getGoogleOIDCClient = async () => {
-  const googleIssuer = await Issuer.discover("https://accounts.google.com");
-  return new googleIssuer.Client({
-    client_id: process.env.GOOGLE_CLIENT_ID,
-    client_secret: process.env.GOOGLE_CLIENT_SECRET,
+const getOIDCClient = async () => {
+  const issuerUrl = process.env.OIDC_ISSUER_URL || "https://accounts.google.com";
+  const oidcIssuer = await Issuer.discover(issuerUrl);
+  return new oidcIssuer.Client({
+    client_id: process.env.OIDC_CLIENT_ID || process.env.GOOGLE_CLIENT_ID!,
+    client_secret: process.env.OIDC_CLIENT_SECRET || process.env.GOOGLE_CLIENT_SECRET!,
     redirect_uris: [REDIRECT_URI],
     response_types: ["code"],
   });
@@ -34,7 +35,7 @@ export const Google = async (req: express.Request, res: express.Response) => {
   const code_challenge = generators.codeChallenge(code_verifier);
   req.session!.code_verifier = code_verifier;
 
-  const client = await getGoogleOIDCClient();
+  const client = await getOIDCClient();
   const authorizationUrl = client.authorizationUrl({
     scope: "openid email profile",
     state: state.toString(),
@@ -47,7 +48,7 @@ export const Google = async (req: express.Request, res: express.Response) => {
 };
 
 export const Callback = async (req: express.Request, res: express.Response) => {
-  const client = await getGoogleOIDCClient();
+  const client = await getOIDCClient();
 
   // Retrieve recognized callback parameters from the request, e.g. code and state
   const params = client.callbackParams(req);
@@ -162,7 +163,7 @@ export const Callback = async (req: express.Request, res: express.Response) => {
     url.searchParams.append("tempToken", tempToken);
     url.searchParams.append("deviceId", deviceId);
     url.searchParams.append("oidcGoogle", tokenSet.id_token.toString());
-    url.searchParams.append("clientId", process.env.GOOGLE_CLIENT_ID);
+    url.searchParams.append("clientId", process.env.OIDC_CLIENT_ID || process.env.GOOGLE_CLIENT_ID!);
     return res.redirect(url.toString());
   }
   return res.redirect(returnTo);

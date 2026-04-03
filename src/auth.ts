@@ -21,13 +21,13 @@ export const isIdentityAllowed = (identity?: string | null) => {
 
 export const verifyToken = async (idToken: string) => {
   const JWKS = jose.createRemoteJWKSet(
-    new URL("https://www.googleapis.com/oauth2/v3/certs"),
+    new URL(process.env.OIDC_JWKS_URL || "https://www.googleapis.com/oauth2/v3/certs"),
   );
 
   try {
     const { payload } = await jose.jwtVerify(idToken, JWKS, {
-      issuer: "https://accounts.google.com",
-      audience: process.env.GOOGLE_CLIENT_ID,
+      issuer: process.env.OIDC_ISSUER_URL || "https://accounts.google.com",
+      audience: process.env.OIDC_CLIENT_ID || process.env.GOOGLE_CLIENT_ID,
     });
 
     return payload;

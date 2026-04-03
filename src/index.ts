@@ -25,9 +25,13 @@ declare global {
       APP_HOSTNAME: string;
       COOKIE_SECRET: string;
 
-      // We use Google OIDC for authentication
-      GOOGLE_CLIENT_ID: string;
-      GOOGLE_CLIENT_SECRET: string;
+      // OIDC authentication (defaults to Google if OIDC_ vars not set)
+      OIDC_CLIENT_ID?: string;
+      OIDC_CLIENT_SECRET?: string;
+      OIDC_ISSUER_URL?: string;
+      OIDC_JWKS_URL?: string;
+      GOOGLE_CLIENT_ID?: string;
+      GOOGLE_CLIENT_SECRET?: string;
 
       // We use Cloudflare STUN & TURN server for cloud users
       CLOUDFLARE_TURN_ID: string;
@@ -103,12 +107,10 @@ app.get(
     const { sub, iss, exp, aud, iat, jti, nbf } = jose.decodeJwt(idToken);
 
     let user;
-    if (iss === "https://accounts.google.com") {
-      user = await prisma.user.findUnique({
-        where: { googleId: sub },
-        select: { picture: true, email: true },
-      });
-    }
+    user = await prisma.user.findUnique({
+      where: { googleId: sub },
+      select: { picture: true, email: true },
+    });
 
     return res.json({ ...user, sub });
   },
